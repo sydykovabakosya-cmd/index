@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8">
+  <title>Физика Pao-Pao ойыны</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #d9f1ff, #ffffff);
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+    .game-container {
+      width: 90%;
+      max-width: 800px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(6, 100px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .card {
+      width: 100px;
+      height: 100px;
+      background: #ffffff;
+      border: 2px solid #007acc;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.2s;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+    }
+    .card.open {
+      background: #007acc;
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .info {
+      margin: 10px 0;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #007acc;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    @media (max-width:600px){
+      #board { grid-template-columns: repeat(3, 100px); }
+      .card { width: 86px; height: 86px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>⚡ Физика Pao-Pao</h1>
+    <div class="info">
+      <span id="score">Ұпай: 0</span> | 
+      <span id="timer">Уақыт: 120</span> сек
+    </div>
+    <div>
+      <button onclick="startGame(6,120)">Оңай (6 жұп)</button>
+      <button onclick="startGame(9,150)">Орта (9 жұп)</button>
+      <button onclick="startGame(12,210)">Қиын (12 жұп)</button>
+    </div>
+    <div id="board"></div>
+  </div>
+
+  <script>
+    const pairs = [
+      ["F=ma", "Күш массасы мен үдеуге тәуелді"],
+      ["E=mc²", "Энергия мен масса байланысы"],
+      ["p=m·v", "Импульс формуласı"],
+      ["ρ=m/V", "Тығыздық анықтамасы"],
+      ["A=F·s", "Жұмыс формуласы"],
+      ["P=W/t", "Қуат формуласы"],
+      ["I=U/R", "Ом заңы"],
+      ["Q=cmΔT", "Жылу мөлшері"],
+      ["v=s/t", "Жылдамдық"],
+      ["λ=v/f", "Толқын ұзындығы"],
+      ["g≈9.8 м/с²", "Жердің тартылыс үдеуі"],
+      ["p=F/S", "Қысым формуласы"]
+    ];
+
+    let opened = [];
+    let matched = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 0;
+
+    function startGame(numPairs, time) {
+      clearInterval(timer);
+      const selected = pairs.slice(0, numPairs);
+      let cards = [];
+      selected.forEach(p => {
+        cards.push({text: p[0], id: p[0]});
+        cards.push({text: p[1], id: p[0]});
+      });
+      cards = shuffle(cards);
+      const board = document.getElementById("board");
+      board.innerHTML = "";
+      board.style.gridTemplateColumns = `repeat(${Math.min(6,numPairs)}, 100px)`;
+      cards.forEach((c, i) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.id = c.id;
+        card.dataset.index = i;
+        card.innerText = "?";
+        card.onclick = () => flipCard(card, c.text);
+        board.appendChild(card);
+      });
+      opened = [];
+      matched = 0;
+      score = 0;
+      document.getElementById("score").innerText = "Ұпай: " + score;
+      timeLeft = time;
+      document.getElementById("timer").innerText = "Уақыт: " + timeLeft;
+      timer = setInterval(()=>{
+        timeLeft--;
+        document.getElementById("timer").innerText = "Уақыт: " + timeLeft;
+        if(timeLeft<=0){
+          clearInterval(timer);
+          alert("⏰ Уақыт бітті! Жинаған ұпай: "+score);
+        }
+      },1000);
+    }
+
+    function flipCard(card, text) {
+      if (card.classList.contains("open")) return;
+      card.classList.add("open");
+      card.innerText = text;
+      opened.push(card);
+      if (opened.length===2) {
+        setTimeout(checkMatch,500);
+      }
+    }
+
+    function checkMatch() {
+      const [c1,c2] = opened;
+      if (c1.dataset.id===c2.dataset.id && c1.dataset.index!==c2.dataset.index) {
+        score += 10;
+        matched++;
+        // keep open
+      } else {
+        score -= 5;
+        c1.classList.remove("open");
+        c2.classList.remove("open");
+        c1.innerText = "?";
+        c2.innerText = "?";
+      }
+      document.getElementById("score").innerText = "Ұпай: "+score;
+      opened = [];
+      if (matched===document.getElementById("board").children.length/2) {
+        clearInterval(timer);
+        alert("🎉 Құттықтаймыз! Барлық жұп табылды. Ұпай: "+score);
+      }
+    }
+
+    function shuffle(arr) {
+      for (let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+  </script>
+</body>
+</html>
